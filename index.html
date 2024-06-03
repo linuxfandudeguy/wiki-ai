@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WikiAI Assistant</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        /* Custom styles */
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+        }
+        .chat-window {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user .message {
+            background-color: #d4edda;
+        }
+        .assistant .message {
+            background-color: #cce5ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">WikiAI</h1>
+        <div class="chat-window">
+            <!-- Chat interface -->
+            <div class="chat-history">
+                <!-- Chat messages -->
+            </div>
+            <div class="chat-input">
+                <input type="text" id="user-input" class="form-control" placeholder="Type your message...">
+                <div class="text-center mt-2">
+                    <button id="send-btn" class="btn btn-primary">Send</button>
+                </div>
+                <div class="form-check mt-2">
+                    <input type="checkbox" class="form-check-input" id="speech-toggle">
+                    <label class="form-check-label" for="speech-toggle">Enable Speech Output (Only works for English)</label>
+                </div>
+                <div class="form-group mt-2">
+                    <label for="language-select">Select Language Model:</label>
+                    <select class="form-control" id="language-select">
+                        <option value="en">English (Wikipedia)</option>
+                        <option value="fr">French (Wikipedia)</option>
+                        <option value="de">German (Wikipedia)</option>
+                        <option value="es">Spanish (Wikipedia)</option>
+                        <option value="it">Italian (Wikipedia)</option>
+                        <option value="ja">Japanese (Wikipedia)</option>
+                        <option value="ko">Korean (Wikipedia)</option>
+                        <option value="zh">Chinese (Wikipedia)</option>
+                        <option value="lao">Lao (Wikipedia)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Bootstrap JS and Custom Script -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatHistory = document.querySelector('.chat-history');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const speechToggle = document.getElementById('speech-toggle');
+
+            // Map language codes to speech language codes
+            const languageToSpeechCode = {
+                'en': 'en-US',
+                'fr': 'fr-FR',
+                'de': 'de-DE',
+                'es': 'es-ES',
+                'it': 'it-IT',
+                'ja': 'ja-JP',
+                'ko': 'ko-KR',
+                'zh': 'zh-CN',
+                'lo': 'lo-LA'
+            };
+
+            // Function to add a message to the chat history
+            function addMessage(message, sender) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', sender);
+                messageElement.textContent = message;
+                chatHistory.appendChild(messageElement);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+
+            // Function to send user input to the assistant
+            function sendMessage(language) {
+                const query = userInput.value.trim();
+                if (query === '') return;
+
+                // Add user message to chat history
+                addMessage(query, 'user');
+                userInput.value = '';
+
+                // Fetch answer from Wikipedia based on language
+                fetchWikiAnswer(query, language);
+            }
+
+            // Function to fetch answer from Wikipedia API based on selected language model
+            function fetchWikiAnswer(query, language) {
+                const apiUrl = `https://${language}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+
+                fetch(apiUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch data');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        const summary = data.extract || 'No information found.';
+                        addMessage(summary, 'assistant');
+                        if (speechToggle.checked) {
+                            speak(summary, languageToSpeechCode[language]);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        addMessage('Sorry, I couldn\'t find information on that.', 'assistant');
+                    });
+            }
+
+            // Function to speak text using text-to-speech synthesis
+            function speak(text, languageCode) {
+                const speechSynthesis = window.speechSynthesis;
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = languageCode;
+                speechSynthesis.speak(utterance);
+            }
+
+            // Event listener for sending messages
+            sendBtn.addEventListener('click', function() {
+                const selectedLanguage = document.getElementById('language-select').value;
+                sendMessage(selectedLanguage);
+            });
+
+            userInput.addEventListener('keypress', function(event) {
+                const selectedLanguage = document.getElementById('language-select').value;
+                if (event.key === 'Enter') {
+                    sendMessage(selectedLanguage);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
